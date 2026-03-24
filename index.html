@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>携程签证订单助手</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #070c18;
+  --surface:   #0d1628;
+  --surface2:  #111e35;
+  --border:    rgba(64,169,255,0.12);
+  --accent:    #1677ff;
+  --accent2:   #40a9ff;
+  --green:     #52c41a;
+  --orange:    #fa8c16;
+  --red:       #ff4d4f;
+  --text:      #c8d8f0;
+  --text-dim:  #4a6a90;
+  --text-mute: #253550;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans SC', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background grid */
+body::before {
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(22,119,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22,119,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+.wrap { position:relative;z-index:1; max-width:1400px; margin:0 auto; padding:0 24px 60px; }
+
+/* ── Header ── */
+header {
+  padding: 32px 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+
+.brand { display:flex; align-items:center; gap:14px; }
+
+.brand-icon {
+  width:44px;height:44px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+  box-shadow: 0 6px 20px rgba(22,119,255,0.4);
+}
+
+.brand-name {
+  font-family:'Syne',sans-serif;
+  font-size:20px;font-weight:800;
+  letter-spacing:-0.5px;
+  color:#fff;
+}
+
+.brand-sub {
+  font-size:11px;color:var(--text-dim);
+  letter-spacing:1px;text-transform:uppercase;
+  margin-top:2px;
+}
+
+.ws-status {
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;color:var(--text-dim);
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:7px 14px;border-radius:20px;
+}
+
+.ws-dot {
+  width:7px;height:7px;border-radius:50%;
+  background:#ff4d4f;
+  transition:background 0.3s;
+}
+.ws-dot.on { background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 2s infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Controls ── */
+.controls {
+  display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:20px;
+}
+
+.btn {
+  padding:10px 22px;
+  border:none;border-radius:8px;
+  font-family:'Noto Sans SC',sans-serif;
+  font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .18s;
+  letter-spacing:.3px;
+  display:flex;align-items:center;gap:7px;
+}
+
+.btn:disabled { opacity:.35;cursor:not-allowed;transform:none!important; }
+
+.date-group {
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px 12px;
+  flex-wrap:wrap;
+}
+
+.date-label {
+  font-size:11px;color:var(--text-dim);margin-right:4px;white-space:nowrap;
+}
+
+.btn-date {
+  padding:4px 12px;border-radius:5px;
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-dim);font-size:11px;cursor:pointer;
+  transition:all .15s;font-family:'Noto Sans SC',sans-serif;
+}
+.btn-date:hover { border-color:var(--accent);color:var(--accent2); }
+.btn-date.active { background:rgba(22,119,255,.15);border-color:var(--accent);color:var(--accent2); }
+
+.date-input {
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;padding:3px 8px;
+  color:var(--text);font-size:11px;
+  font-family:'Noto Sans SC',sans-serif;
+  outline:none;
+}
+.date-input:focus { border-color:var(--accent); }
+
+.btn-start {
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;
+  box-shadow:0 4px 16px rgba(22,119,255,.35);
+}
+.btn-start:not(:disabled):hover { transform:translateY(-2px);box-shadow:0 7px 22px rgba(22,119,255,.5); }
+
+.btn-stop {
+  background:rgba(255,77,79,.12);
+  border:1px solid rgba(255,77,79,.3);
+  color:#ff7875;
+}
+.btn-stop:not(:disabled):hover { background:rgba(255,77,79,.22); }
+
+.btn-export {
+  background:linear-gradient(135deg,#389e0d,var(--green));
+  color:#fff;
+  box-shadow:0 4px 16px rgba(82,196,26,.3);
+}
+.btn-export:not(:disabled):hover { transform:translateY(-2px); }
+
+.btn-clear {
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text-dim);
+}
+.btn-clear:not(:disabled):hover { border-color:rgba(255,255,255,.2);color:var(--text); }
+
+.btn-retry {
+  background:rgba(250,173,20,.12);
+  border:1px solid rgba(250,173,20,.3);
+  color:#ffc53d;
+}
+.btn-retry:not(:disabled):hover { background:rgba(250,173,20,.22); }
+
+.btn-feishu {
+  background:rgba(49,197,138,.12);
+  border:1px solid rgba(49,197,138,.3);
+  color:#31c58a;
+}
+.btn-feishu:not(:disabled):hover { background:rgba(49,197,138,.22); }
+
+.phase-tag {
+  font-size:12px;color:var(--text-dim);
+  background:var(--surface2);
+  border:1px solid var(--border);
+  padding:5px 12px;border-radius:20px;
+  margin-left:4px;
+}
+
+/* ── Stats Row ── */
+.stats {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:20px;
+}
+
+.stat-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px 20px;
+  position:relative;overflow:hidden;
+  transition:border-color .2s;
+}
+.stat-card:hover { border-color:rgba(64,169,255,.3); }
+
+.stat-card::after {
+  content:'';position:absolute;top:-20px;right:-20px;
+  width:70px;height:70px;border-radius:50%;
+  background:var(--accent);opacity:.04;
+}
+
+.stat-num {
+  font-family:'Syne',sans-serif;
+  font-size:30px;font-weight:800;
+  color:var(--accent2);
+  line-height:1;
+  transition:color .3s;
+}
+
+.stat-label {
+  font-size:11px;color:var(--text-dim);
+  margin-top:5px;letter-spacing:.5px;
+}
+
+/* ── Progress ── */
+.progress-wrap {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px 20px;
+  margin-bottom:20px;
+}
+
+.progress-head {
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:10px;font-size:12px;color:var(--text-dim);
+}
+
+.progress-track {
+  height:5px;background:rgba(255,255,255,.05);
+  border-radius:3px;overflow:hidden;
+}
+
+.progress-fill {
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:3px;
+  transition:width .4s ease;
+  box-shadow:0 0 10px rgba(64,169,255,.4);
+}
+
+/* ── Log ── */
+.log-wrap {
+  background:rgba(0,0,0,.3);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px 16px;
+  height:110px;overflow-y:auto;
+  margin-bottom:20px;
+  font-family:monospace;
+}
+
+.log-line {
+  font-size:11.5px;line-height:1.9;
+  color:var(--text-mute);
+  white-space:pre-wrap;word-break:break-all;
+}
+.log-line.info    { color:var(--accent2); }
+.log-line.success { color:#73d13d; }
+.log-line.warn    { color:#ffc53d; }
+.log-line.error   { color:#ff7875; }
+.log-line.default { color:#3a5878; }
+
+.log-wrap::-webkit-scrollbar { width:3px }
+.log-wrap::-webkit-scrollbar-thumb { background:rgba(64,169,255,.2);border-radius:2px }
+
+/* ── Table ── */
+.table-section {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+}
+
+.table-head-bar {
+  padding:14px 20px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--border);
+  background:rgba(22,119,255,.04);
+}
+
+.table-title {
+  font-size:13px;font-weight:500;color:var(--text);
+  display:flex;align-items:center;gap:8px;
+}
+
+.row-count {
+  font-size:11px;color:var(--text-dim);
+  background:var(--surface2);
+  border:1px solid var(--border);
+  padding:3px 10px;border-radius:10px;
+}
+
+.table-wrap { overflow-x:auto; max-height:480px; overflow-y:auto; }
+
+.table-wrap::-webkit-scrollbar { width:4px;height:4px }
+.table-wrap::-webkit-scrollbar-thumb { background:rgba(64,169,255,.2);border-radius:2px }
+
+table { width:100%;border-collapse:collapse;font-size:12px; }
+
+thead tr {
+  background:rgba(22,119,255,.1);
+  position:sticky;top:0;z-index:5;
+}
+
+th {
+  padding:11px 14px;text-align:left;
+  font-size:11px;font-weight:500;color:var(--accent2);
+  border-bottom:1px solid rgba(64,169,255,.2);
+  white-space:nowrap;letter-spacing:.3px;
+}
+
+td {
+  padding:9px 14px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  vertical-align:middle;
+  color:var(--text);
+  line-height:1.5;
+}
+
+tbody tr:hover { background:rgba(255,255,255,.025); }
+
+.idx-cell { color:var(--text-mute);font-size:11px; }
+
+.order-no {
+  color:var(--accent2);font-weight:500;
+  font-family:monospace;font-size:12px;
+}
+
+.badge {
+  display:inline-flex;align-items:center;
+  padding:2px 9px;border-radius:10px;
+  font-size:10px;font-weight:500;
+  white-space:nowrap;margin:1px;
+}
+.b-blue   { background:rgba(22,119,255,.15);color:#69b1ff;border:1px solid rgba(22,119,255,.25); }
+.b-green  { background:rgba(82,196,26,.12);color:#95de64;border:1px solid rgba(82,196,26,.22); }
+.b-orange { background:rgba(250,140,22,.12);color:#ffc069;border:1px solid rgba(250,140,22,.22); }
+.b-red    { background:rgba(255,77,79,.12);color:#ff9c9c;border:1px solid rgba(255,77,79,.22); }
+.b-gray   { background:rgba(255,255,255,.05);color:var(--text-dim);border:1px solid rgba(255,255,255,.1); }
+
+.amt { color:#95de64;font-weight:500; }
+
+.empty-state {
+  text-align:center;padding:70px 20px;
+  color:var(--text-mute);
+}
+.empty-icon { font-size:48px;display:block;margin-bottom:14px;opacity:.4; }
+.empty-text { font-size:13px;line-height:2; }
+
+/* ── Animations ── */
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.stat-card { animation:fadeIn .4s ease both; }
+.stat-card:nth-child(1){animation-delay:.05s}
+.stat-card:nth-child(2){animation-delay:.10s}
+.stat-card:nth-child(3){animation-delay:.15s}
+.stat-card:nth-child(4){animation-delay:.20s}
+
+tbody tr { animation:fadeIn .3s ease both; }
+
+/* ── Footer ── */
+footer {
+  text-align:center;
+  padding:30px 0 0;
+  font-size:11px;color:var(--text-mute);
+  border-top:1px solid var(--border);
+  margin-top:30px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">✈</div>
+      <div>
+        <div class="brand-name">携程签证订单助手</div>
+        <div class="brand-sub">Auto Visa Order Scraper</div>
+      </div>
+    </div>
+    <div class="ws-status">
+      <div class="ws-dot" id="wsDot"></div>
+      <span id="wsText">未连接</span>
+    </div>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="date-group">
+      <span class="date-label">付款日期</span>
+      <button class="btn-date active" id="dateAll" onclick="setDateMode('all')">全部</button>
+      <button class="btn-date" id="dateToday" onclick="setDateMode('today')">今天</button>
+      <button class="btn-date" id="dateYesterday" onclick="setDateMode('yesterday')">昨天</button>
+      <button class="btn-date" id="dateCustom" onclick="setDateMode('custom')">自定义</button>
+      <div id="customDateWrap" style="display:none;align-items:center;gap:6px">
+        <input type="date" id="dateStart" class="date-input">
+        <span style="color:#3d5070">~</span>
+        <input type="date" id="dateEnd" class="date-input">
+      </div>
+    </div>
+    <button class="btn btn-start" id="btnStart" disabled>
+      <span>▶</span> 开始抓取
+    </button>
+    <button class="btn btn-stop" id="btnStop" disabled>
+      <span>⏹</span> 停止
+    </button>
+    <button class="btn btn-export" id="btnExport" disabled>
+      <span>⬇</span> 导出 Excel
+    </button>
+    <button class="btn btn-clear" id="btnClear">
+      <span>🗑</span> 清空
+    </button>
+    <button class="btn btn-retry" id="btnRetry" disabled>
+      <span>🔄</span> 重新抓取选中
+    </button>
+    <button class="btn btn-feishu" id="btnFeishu">
+      <span>📋</span> 同步飞书
+    </button>
+    <span class="phase-tag" id="phaseTag">等待开始</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-num" id="cntOrders">0</div>
+      <div class="stat-label">📋 订单数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="cntTravelers">0</div>
+      <div class="stat-label">👤 出行人数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="cntSub">0</div>
+      <div class="stat-label">📁 子订单数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="cntPages">0</div>
+      <div class="stat-label">📄 已翻页数</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-head">
+      <span id="progressText">等待开始...</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressBar"></div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-wrap" id="logArea">
+    <div class="log-line info">► 系统就绪，等待连接...</div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-section">
+    <div class="table-head-bar">
+      <div class="table-title">
+        <span>📊</span> 抓取结果
+      </div>
+      <span class="row-count" id="rowCount">0 条</span>
+    </div>
+    <div class="table-wrap" id="tableWrap">
+      <div class="empty-state">
+        <span class="empty-icon">📄</span>
+        <div class="empty-text">
+          点击「开始抓取」后，数据将实时显示在这里<br>
+          <span style="font-size:11px;color:#1a3050">支持自动翻页 · 子订单状态 · 一键导出 Excel</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>携程签证订单助手 · 仅供内部使用</footer>
+</div>
+
+<script>
+// ============================================================
+// WebSocket 连接
+// ============================================================
+let ws;
+let rows = [];
+
+function connectWS() {
+  ws = new WebSocket('ws://localhost:3333');
+
+  ws.onopen = () => {
+    document.getElementById('wsDot').classList.add('on');
+    document.getElementById('wsText').textContent = '已连接';
+    document.getElementById('btnStart').disabled = false;
+    addLog('✅ 已连接到本地服务，可以开始抓取', 'success');
+    loadSavedData();
+  };
+
+  ws.onclose = () => {
+    document.getElementById('wsDot').classList.remove('on');
+    document.getElementById('wsText').textContent = '未连接';
+    document.getElementById('btnStart').disabled = true;
+    addLog('⚠ 连接断开，5秒后重试...', 'warn');
+    setTimeout(connectWS, 5000);
+  };
+
+  ws.onerror = () => {};
+
+  ws.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+
+    if (msg.type === 'log') {
+      addLog(msg.msg, msg.level);
+    }
+    else if (msg.type === 'progress') {
+      document.getElementById('progressText').textContent = msg.text;
+      document.getElementById('progressPct').textContent = msg.pct + '%';
+      document.getElementById('progressBar').style.width = msg.pct + '%';
+      if (msg.phase) document.getElementById('phaseTag').textContent = msg.phase;
+    }
+    else if (msg.type === 'rows') {
+      rows = msg.rows;
+      renderTable();
+      updateStats();
+    }
+    else if (msg.type === 'pageCount') {
+      document.getElementById('cntPages').textContent = msg.count;
+    }
+    else if (msg.type === 'done') {
+      document.getElementById('btnStart').disabled = false;
+      document.getElementById('btnStop').disabled = true;
+      document.getElementById('btnExport').disabled = rows.length === 0;
+      document.getElementById('phaseTag').textContent = '已完成';
+    }
+  };
+}
+
+// ============================================================
+// 日志
+// ============================================================
+function addLog(msg, type = 'default') {
+  const area = document.getElementById('logArea');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  const t = new Date().toTimeString().slice(0, 8);
+  line.textContent = `[${t}] ${msg}`;
+  area.appendChild(line);
+  area.scrollTop = area.scrollHeight;
+  // 只保留最近 200 行
+  while (area.children.length > 200) area.removeChild(area.firstChild);
+}
+
+// ============================================================
+// 统计
+// ============================================================
+function updateStats() {
+  const orders = new Set(rows.map(r => r.orderNo)).size;
+  const subs = rows.reduce((s, r) => s + (r.subOrders ? r.subOrders.length : 0), 0);
+  animNum('cntOrders', orders);
+  animNum('cntTravelers', rows.length);
+  animNum('cntSub', subs);
+  document.getElementById('rowCount').textContent = rows.length + ' 条';
+}
+
+function animNum(id, target) {
+  const el = document.getElementById(id);
+  const current = parseInt(el.textContent) || 0;
+  if (current === target) return;
+  const step = Math.ceil(Math.abs(target - current) / 12);
+  const dir = target > current ? 1 : -1;
+  let v = current;
+  const timer = setInterval(() => {
+    v += dir * step;
+    if ((dir > 0 && v >= target) || (dir < 0 && v <= target)) { v = target; clearInterval(timer); }
+    el.textContent = v;
+  }, 30);
+}
+
+// ============================================================
+// 渲染表格
+// ============================================================
+function statusBadge(status) {
+  if (!status) return '<span class="badge b-gray">-</span>';
+  let cls = 'b-gray';
+  if (/完成|成功|已出签|获批|通过/.test(status)) cls = 'b-green';
+  else if (/处理|进行|审核|待|提交|受理|收件/.test(status)) cls = 'b-orange';
+  else if (/拒签|失败|取消|退款|拒绝/.test(status)) cls = 'b-red';
+  else if (/已收件|在办/.test(status)) cls = 'b-blue';
+  return `<span class="badge ${cls}">${status}</span>`;
+}
+
+function renderTable() {
+  const wrap = document.getElementById('tableWrap');
+  if (rows.length === 0) {
+    wrap.innerHTML = `<div class="empty-state">
+      <span class="empty-icon">📄</span>
+      <div class="empty-text">暂无数据</div>
+    </div>`;
+    return;
+  }
+
+  let html = `<table>
+    <thead><tr>
+      <th style="width:36px"><input type="checkbox" id="chkAll" title="全选/取消" style="cursor:pointer;accent-color:#1677ff"></th>
+      <th>#</th>
+      <th>订单号</th>
+      <th>支付日期</th>
+      <th>目的国</th>
+      <th>送签国/地</th>
+      <th>服务类型</th>
+      <th>出行人</th>
+      <th>性别/类型</th>
+      <th>结算金额</th>
+      <th>确认状态</th>
+      <th>子订单状态</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach((r, i) => {
+    const subs = r.subOrders && r.subOrders.length > 0
+      ? r.subOrders.map(s => {
+          const badge = statusBadge(s.status);
+          const step = s.stepDetail ? `<span style="font-size:10px;color:#3a5878;margin-left:4px">${s.stepDetail}</span>` : '';
+          const no = s.subNo ? `<span style="font-size:10px;color:#2a4060;margin-right:3px">#${s.subNo}</span>` : '';
+          return `<div style="margin-bottom:2px;white-space:nowrap">${no}${badge}${step}</div>`;
+        }).join('')
+      : '<span class="badge b-gray">-</span>';
+    html += `<tr>
+      <td><input type="checkbox" class="row-chk" data-idx="${i}" style="cursor:pointer;accent-color:#1677ff"></td>
+      <td class="idx-cell">${i+1}</td>
+      <td><span class="order-no">${r.orderNo||'-'}</span></td>
+      <td style="white-space:nowrap;color:#7a9fc0">${r.payDate||'-'}</td>
+      <td>${r.destCountry ? `<span class="badge b-blue">${r.destCountry}</span>` : '-'}</td>
+      <td style="color:#7a9fc0">${r.signCountry||'-'}</td>
+      <td>${r.service ? `<span class="badge b-gray">${r.service}</span>` : '-'}</td>
+      <td style="font-weight:500">${r.travelerName||'-'}</td>
+      <td style="color:#7a9fc0;font-size:11px">${r.travelerGender||'-'}</td>
+      <td>${r.amount ? `<span class="amt">¥${r.amount}</span>` : '-'}</td>
+      <td>${r.confirmStatus ? statusBadge(r.confirmStatus) : '-'}</td>
+      <td>${subs}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// ============================================================
+// 按钮事件
+// ============================================================
+let dateMode = 'all';
+
+function setDateMode(mode) {
+  dateMode = mode;
+  ['all','today','yesterday','custom'].forEach(m => {
+    document.getElementById('date' + m.charAt(0).toUpperCase() + m.slice(1)).classList.toggle('active', m === mode);
+  });
+  document.getElementById('customDateWrap').style.display = mode === 'custom' ? 'flex' : 'none';
+}
+
+function getDateRange() {
+  const fmt = (d) => d.toISOString().slice(0,10);
+  const today = new Date();
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  if (dateMode === 'today')     return { startDate: fmt(today),     endDate: fmt(today) };
+  if (dateMode === 'yesterday') return { startDate: fmt(yesterday),  endDate: fmt(yesterday) };
+  if (dateMode === 'custom') {
+    const s = document.getElementById('dateStart').value;
+    const e = document.getElementById('dateEnd').value;
+    if (s && e) return { startDate: s, endDate: e };
+    return null;
+  }
+  return {};  // 全部：不传日期
+}
+
+document.getElementById('btnStart').onclick = async () => {
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnStop').disabled = false;
+  document.getElementById('btnExport').disabled = true;
+  document.getElementById('phaseTag').textContent = '正在运行';
+  const dateRange = getDateRange();
+  if (dateRange === null) {
+    addLog('请先选择自定义日期范围', 'warn');
+    document.getElementById('btnStart').disabled = false;
+    document.getElementById('btnStop').disabled = true;
+    return;
+  }
+  const res = await fetch('/api/start', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(dateRange)
+  });
+  const data = await res.json();
+  if (!data.ok) {
+    addLog('❌ ' + data.msg, 'error');
+    document.getElementById('btnStart').disabled = false;
+    document.getElementById('btnStop').disabled = true;
+  }
+};
+
+document.getElementById('btnStop').onclick = async () => {
+  await fetch('/api/stop', { method:'POST' });
+  document.getElementById('btnStop').disabled = true;
+  addLog('⏹ 已发送停止信号...', 'warn');
+};
+
+document.getElementById('btnExport').onclick = () => {
+  addLog('📊 正在生成 Excel 文件...', 'info');
+  const a = document.createElement('a');
+  a.href = '/api/export';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  // 用 fetch 下载
+  fetch('/api/export', { method:'POST' })
+    .then(r => r.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `携程签证订单_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      addLog('✅ Excel 已下载！', 'success');
+    });
+};
+
+document.getElementById('btnClear').onclick = async () => {
+  await fetch('/api/clear', { method:'POST' });
+  rows = [];
+  renderTable();
+  updateStats();
+  document.getElementById('cntPages').textContent = '0';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressText').textContent = '等待开始...';
+  document.getElementById('progressPct').textContent = '0%';
+  document.getElementById('phaseTag').textContent = '等待开始';
+  document.getElementById('btnExport').disabled = true;
+  document.getElementById('logArea').innerHTML = '<div class="log-line info">🗑 数据已清空</div>';
+};
+
+// 全选/取消
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'chkAll') {
+    document.querySelectorAll('.row-chk').forEach(c => c.checked = e.target.checked);
+  }
+  updateRetryBtn();
+});
+
+function updateRetryBtn() {
+  const anyChecked = document.querySelectorAll('.row-chk:checked').length > 0;
+  document.getElementById('btnRetry').disabled = !anyChecked;
+}
+
+// 重新抓取选中行
+document.getElementById('btnRetry').onclick = async () => {
+  const checked = Array.from(document.querySelectorAll('.row-chk:checked'))
+    .map(c => parseInt(c.dataset.idx));
+  if (checked.length === 0) return;
+
+  const orderNos = checked.map(i => rows[i]?.orderNo).filter(Boolean);
+  // 去重（同一订单可能多行）
+  const uniqueOrders = [...new Set(orderNos)];
+
+  addLog(`🔄 重新抓取 ${uniqueOrders.length} 个订单...`, 'info');
+  document.getElementById('btnRetry').disabled = true;
+  document.getElementById('btnStart').disabled = true;
+
+  const res = await fetch('/api/retry', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderNos: uniqueOrders })
+  });
+  const data = await res.json();
+  if (!data.ok) {
+    addLog('❌ ' + data.msg, 'error');
+    document.getElementById('btnRetry').disabled = false;
+    document.getElementById('btnStart').disabled = false;
+  }
+};
+
+// 飞书同步
+document.getElementById('btnFeishu').onclick = async () => {
+  const btn = document.getElementById('btnFeishu');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> 同步中...';
+  addLog('📋 正在同步到飞书多维表格...', 'info');
+  try {
+    const res = await fetch('/api/sync-feishu', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      addLog(`✅ 飞书同步成功：新增 ${data.created} 条，更新 ${data.updated} 条`, 'success');
+    } else {
+      addLog('❌ 飞书同步失败：' + data.msg, 'error');
+    }
+  } catch(e) {
+    addLog('❌ 飞书同步出错：' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<span>📋</span> 同步飞书';
+};
+
+// 启动时从本地文件加载历史数据
+async function loadSavedData() {
+  try {
+    const res = await fetch('/api/load');
+    const data = await res.json();
+    if (data.count > 0) {
+      addLog(`📂 已加载本地历史数据 ${data.count} 条`, 'info');
+    }
+  } catch(e) {}
+}
+
+// 启动 WS
+connectWS();
+</script>
+</body>
+</html>
